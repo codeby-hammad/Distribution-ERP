@@ -173,8 +173,8 @@ export default async function ProductsPage({
     const { supabase, profile } = await requireProfile();
     if (!canManage(profile.role)) fail('Not allowed');
 
-    const p = parseProduct(fd);
-    if ('error' in p) fail(p.error);
+        const p = parseProduct(fd);
+    if (p.error !== undefined || !p.value) fail(p.error ?? 'Invalid data');
 
     const { error } = await supabase
       .from('products')
@@ -192,8 +192,7 @@ export default async function ProductsPage({
 
     const id = String(fd.get('id') ?? '');
     const p = parseProduct(fd);
-    if ('error' in p) fail(p.error);
-
+    if (p.error !== undefined || !p.value) fail(p.error ?? 'Invalid data');
     const { error } = await supabase
       .from('products')
       .update(p.value)
@@ -247,8 +246,7 @@ export default async function ProductsPage({
     const [{ data: products }, statsRes, batchRes, whRes, supRes] = await Promise.all([
     supabase
       .from('products')
-      .select('id, name, brand, sku, barcode, pcs_per_carton, price_per_pcs, min_stock_pcs')
-      .is('deleted_at', null)
+      .select('id, name, brand, sku, barcode, pcs_per_carton, price_per_pcs, min_stock_pcs, company_id')      .is('deleted_at', null)
       .order('name'),
     seeStock
       ? supabase

@@ -91,3 +91,4 @@ export const groupsFor = (role: string) =>
 
 export const isActive = (pathname: string, href: string) =>
   href === '/' ? pathname === '/' : pathname.startsWith(href);
+

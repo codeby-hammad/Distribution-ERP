@@ -45,8 +45,8 @@ export default async function SuppliersPage({
     const { supabase, profile } = await requireProfile();
     if (!canManage(profile.role)) fail('Not allowed');
 
-    const p = parse(fd);
-    if ('error' in p) fail(p.error);
+       const p = parse(fd);
+    if (p.error !== undefined || !p.value) fail(p.error ?? 'Invalid data');
 
     const { error } = await supabase
       .from('companies')
@@ -63,8 +63,8 @@ export default async function SuppliersPage({
     if (!canManage(profile.role)) fail('Not allowed');
 
     const id = String(fd.get('id') ?? '');
-    const p = parse(fd);
-    if ('error' in p) fail(p.error);
+        const p = parse(fd);
+    if (p.error !== undefined || !p.value) fail(p.error ?? 'Invalid data');
 
     const { error } = await supabase
       .from('companies')
