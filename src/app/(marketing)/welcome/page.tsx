@@ -25,7 +25,7 @@ import { LossCalculator, OrderToCash, ProductTabs, Reveal } from './Parts';
 
 /* ---------------- EDIT THESE ---------------- */
 const CONFIG = {
-  brand: 'Distribution ERP',
+  brand: 'Distribo ERP',
   whatsapp: '923261125120', // country code, no + or spaces
   phoneText: '0326 1125120',
   loginUrl: '/login',
@@ -393,7 +393,22 @@ export default function WelcomePage() {
 
       <footer className="border-t border-slate-100 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 text-sm text-slate-400 sm:flex-row">
-          <p>© {CONFIG.year} {CONFIG.brand}. All rights reserved.</p>
+         <p>
+  © {CONFIG.year} {CONFIG.brand} by{" "}
+  <a
+    href="https://hftechnologies.online"
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{
+      color: "#2563eb",
+      fontWeight: "700",
+      textDecoration: "none",
+    }}
+  >
+    HF Technologies PK
+  </a>
+  . All rights reserved.
+</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1"><ShieldCheck size={14} />Private data per company</span>
             <Link href={CONFIG.loginUrl} className="font-semibold text-slate-500 hover:text-indigo-600">Client login</Link>

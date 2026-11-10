@@ -53,7 +53,7 @@ function Hero({ name, role }: { name: string; role: string }) {
     timeZone: 'Asia/Karachi',
   });
   return (
-    <>
+     <>
       <p className="relative text-sm text-indigo-100">{today}</p>
       <h1 className="relative mt-1 text-2xl font-bold md:text-3xl">Welcome back, {name.split(' ')[0]}</h1>
       <p className="relative mt-1 text-sm capitalize text-indigo-100">{role} account</p>

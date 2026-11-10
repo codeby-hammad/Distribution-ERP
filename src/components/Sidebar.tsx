@@ -8,14 +8,17 @@ import { groupsFor, isActive } from './nav-items';
 export default function Sidebar({
   name,
   role,
+  companyName,
   signOut,
 }: {
   name: string;
   role: string;
+  companyName?: string | null;
   signOut: () => Promise<void>;
 }) {
   const pathname = usePathname();
   const groups = groupsFor(role);
+  const title = companyName?.trim() || 'Distribution';
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-72 shrink-0 p-4 md:block">
@@ -24,12 +27,14 @@ export default function Sidebar({
         style={{ backgroundImage: 'linear-gradient(180deg,#1e1b4b 0%,#0f172a 100%)' }}
       >
         <div className="mb-4 flex shrink-0 items-center gap-3 px-2 pt-2">
-          <div className="hero grid size-10 place-items-center rounded-xl text-white shadow-lg shadow-indigo-900/40">
+          <div className="hero grid size-10 shrink-0 place-items-center rounded-xl text-white shadow-lg shadow-indigo-900/40">
             <Boxes size={20} />
           </div>
-          <div>
-            <p className="font-bold leading-tight text-white">Distribution</p>
-            <p className="text-xs text-indigo-300">ERP Suite</p>
+          <div className="min-w-0">
+            <p className="line-clamp-2 break-words font-bold leading-tight text-white" title={title}>
+              {title}
+            </p>
+            <p className="text-xs text-indigo-300">Distribo ERP </p>
           </div>
         </div>
 

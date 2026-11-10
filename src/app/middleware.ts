@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { canAccess } from '@/lib/access';
 
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/auth/confirm', '/welcome'];
+const AUTH_FLOW_PATHS = ['/forgot-password', '/reset-password', '/auth/confirm'];
+
+const matches = (path: string, list: string[]) =>
+  list.some((p) => path === p || path.startsWith(p + '/'));
+
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });
   const supabase = createServerClient(
@@ -24,9 +30,11 @@ export async function middleware(req: NextRequest) {
   } = await supabase.auth.getUser();
   const path = req.nextUrl.pathname;
 
-  if (!user && !path.startsWith('/login')) {
+  if (!user && !matches(path, PUBLIC_PATHS)) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
+
+  if (matches(path, AUTH_FLOW_PATHS)) return res;
 
   const role = user?.app_metadata?.role as string | undefined;
   if (user && role && !canAccess(role, path)) {

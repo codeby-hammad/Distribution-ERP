@@ -12,6 +12,7 @@ const TABS = [
   { key: 'salesmen', label: 'Salesmen' },
   { key: 'routes', label: 'Routes' },
   { key: 'aging', label: 'Aging' },
+  { key: 'tax', label: 'Tax' },
 ];
 
 type Sales = {
@@ -52,7 +53,18 @@ type Age = {
   d61_90: number;
   d90_plus: number;
 };
-
+type TaxRow = {
+  invoice_id: string;
+  invoice_no: number;
+  invoice_date: string;
+  shop_id: string;
+  shop_name: string;
+  tax_status: string;
+  total: number;
+  rate: number;
+  tax: number;
+  net: number;
+};
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 const isDate = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -88,8 +100,16 @@ export default async function ReportsPage({
   const to = isDate(sp.to) ? (sp.to as string) : today;
   const from = isDate(sp.from) ? (sp.from as string) : addDays(to, -6);
 
-  const fn =
-    tab === 'sales' ? 'report_daily_sales' : tab === 'salesmen' ? 'report_salesman' : tab === 'routes' ? 'report_route_recovery' : 'report_aging';
+   const fn =
+    tab === 'sales'
+      ? 'report_daily_sales'
+      : tab === 'salesmen'
+        ? 'report_salesman'
+        : tab === 'routes'
+          ? 'report_route_recovery'
+          : tab === 'tax'
+            ? 'report_tax'
+            : 'report_aging';
   const { data, error } = await supabase.rpc(fn, tab === 'aging' ? {} : { p_from: from, p_to: to });
   const rows = (data ?? []) as unknown[];
 
@@ -386,6 +406,74 @@ export default async function ReportsPage({
               </div>
               <p className="p-4 pt-2 text-xs text-slate-500">
                 Payments are applied to the oldest debt first. Opening balances count as 90+.
+              </p>
+            </div>
+          </div>
+        );
+      })()}
+
+
+            {/* ---------- Tax ---------- */}
+      {!error && tab === 'tax' && rows.length > 0 && (() => {
+        const r = rows as TaxRow[];
+        const filer = r.filter((x) => x.tax_status !== 'non_filer');
+        const non = r.filter((x) => x.tax_status === 'non_filer');
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+              <Box label="Invoices" value={String(r.length)} />
+              <Box label="Sales (incl. tax)" value={rs(sum(r, (x) => num(x.total)))} />
+              <Box label="Tax collected" value={rs(sum(r, (x) => num(x.tax)))} tone="text-indigo-700" />
+              <Box label="Filer tax" value={rs(sum(filer, (x) => num(x.tax)))} tone="text-emerald-700" />
+              <Box label="Non-filer tax" value={rs(sum(non, (x) => num(x.tax)))} tone="text-amber-600" />
+            </div>
+            <div className="card overflow-hidden">
+              <div className="flex items-center justify-between p-4 pb-2">
+                <h2 className="font-bold text-slate-900">Tax by invoice</h2>
+                <CsvButton
+                  filename={`tax-${from}-to-${to}.csv`}
+                  headers={['Date', 'Invoice', 'Shop', 'Status', 'Total', 'Rate %', 'Tax', 'Net']}
+                  rows={r.map((x) => [x.invoice_date, x.invoice_no, x.shop_name, x.tax_status, num(x.total), num(x.rate), num(x.tax), num(x.net)])}
+                />
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-left text-sm">
+                  <thead>
+                    <tr className="border-y border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                      <th className="px-2 py-2">Invoice</th>
+                      <th className="px-2 py-2">Shop</th>
+                      <th className={th}>Total</th>
+                      <th className={th}>Rate</th>
+                      <th className={th}>Tax</th>
+                      <th className={th}>Net</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {r.map((x) => (
+                      <tr key={x.invoice_id}>
+                        <td className="px-2 py-2">
+                          <span className="font-medium text-slate-900">#{x.invoice_no}</span>
+                          <p className="text-[11px] text-slate-400">{dateLabel(x.invoice_date)}</p>
+                        </td>
+                        <td className="px-2 py-2">
+                          <Link href={`/shops/${x.shop_id}`} className="font-medium text-slate-900">
+                            {x.shop_name}
+                          </Link>
+                          <p className={`text-[11px] ${x.tax_status === 'non_filer' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            {x.tax_status === 'non_filer' ? 'Non-filer' : 'Filer'}
+                          </p>
+                        </td>
+                        <td className={td}>{rs(num(x.total))}</td>
+                        <td className={td}>{num(x.rate)}%</td>
+                        <td className={`${td} font-semibold text-indigo-700`}>{rs(num(x.tax))}</td>
+                        <td className={td}>{rs(num(x.net))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="p-4 pt-2 text-xs text-slate-500">
+                Prices include tax. Tax is split out of each invoice total using the shop&apos;s filer or non-filer rate. This is a display report, not a tax filing.
               </p>
             </div>
           </div>

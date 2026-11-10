@@ -47,7 +47,7 @@ export default async function LoginPage({
               <Boxes size={22} />
             </div>
             <div>
-              <p className="text-lg font-bold leading-tight">Distribution ERP</p>
+              <p className="text-lg font-bold leading-tight">Distribo ERP</p>
               <p className="text-xs text-indigo-100">Built for wholesale distributors</p>
             </div>
           </div>

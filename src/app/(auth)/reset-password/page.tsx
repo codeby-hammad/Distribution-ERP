@@ -11,7 +11,9 @@ export default async function ResetPasswordPage({
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect('/forgot-password?error=' + encodeURIComponent('Your reset link expired. Request a new one.'));
+  if (!data.user) {
+    redirect('/forgot-password?error=' + encodeURIComponent('Your reset session expired. Request a new link.'));
+  }
 
   async function save(formData: FormData) {
     'use server';
@@ -24,7 +26,7 @@ export default async function ResetPasswordPage({
     const { error } = await supabase.auth.updateUser({ password });
     if (error) redirect('/reset-password?error=' + encodeURIComponent(error.message));
 
-    await supabase.auth.signOut({ scope: 'global' }); // sign out every device
+    await supabase.auth.signOut({ scope: 'global' });
     redirect('/login?ok=' + encodeURIComponent('Password changed. Sign in with your new password.'));
   }
 

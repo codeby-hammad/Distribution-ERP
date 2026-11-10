@@ -1,7 +1,23 @@
 import { revalidatePath } from 'next/cache';
 import { requireProfile } from '@/lib/auth';
 import PageHeader from '@/components/PageHeader';
-import NewOrderForm from './NewOrderForm';
+import NewOrderForm, { type Scheme } from './NewOrderForm';
+
+type SchemeRow = {
+  id: string;
+  name: string;
+  scope: 'product' | 'company';
+  product_id: string | null;
+  company_id: string | null;
+  type: 'bonus' | 'percent' | 'flat';
+  unit?: 'ctn' | 'pcs';
+  min_cartons: number | null;
+  bonus_cartons: number | null;
+  percent: number | null;
+  flat_per_carton: number | null;
+  valid_from: string;
+  valid_to: string;
+};
 
 export default async function NewOrderPage({
   searchParams,
@@ -9,7 +25,7 @@ export default async function NewOrderPage({
   searchParams: Promise<{ shop?: string }>;
 }) {
   const sp = await searchParams;
-    const { supabase } = await requireProfile();
+  const { supabase } = await requireProfile();
 
   async function createOrder(payload: string): Promise<{ id?: string; error?: string }> {
     'use server';
@@ -35,7 +51,7 @@ export default async function NewOrderPage({
     return { id: data as string };
   }
 
-  const [{ data: shops }, { data: balances }, { data: products }] = await Promise.all([
+  const [{ data: shops }, { data: balances }, { data: products }, schemeRes] = await Promise.all([
     supabase
       .from('shops')
       .select('id, name, credit_limit, opening_balance')
@@ -44,20 +60,42 @@ export default async function NewOrderPage({
     supabase.from('shop_balances').select('shop_id, outstanding'),
     supabase
       .from('products')
-      .select('id, name, pcs_per_carton, price_per_pcs')
+      .select('id, name, pcs_per_carton, price_per_pcs, company_id')
       .is('deleted_at', null)
       .eq('is_active', true)
       .order('name'),
+    supabase.rpc('my_active_schemes'),
   ]);
 
   const balMap = new Map((balances ?? []).map((b) => [b.shop_id, Number(b.outstanding)]));
+
+  const schemesFailed = Boolean(schemeRes.error) || !Array.isArray(schemeRes.data);
+  const schemes: Scheme[] = schemesFailed
+    ? []
+    : (schemeRes.data as SchemeRow[]).map((s) => ({
+        id: s.id,
+        name: s.name,
+        scope: s.scope,
+        productId: s.product_id,
+        companyId: s.company_id,
+        type: s.type,
+        unit: s.unit === 'pcs' ? 'pcs' : 'ctn',
+        minQty: Number(s.min_cartons ?? 0),
+        bonusQty: Number(s.bonus_cartons ?? 0),
+        percent: Number(s.percent ?? 0),
+        flatPerCarton: Number(s.flat_per_carton ?? 0),
+        validFrom: String(s.valid_from),
+        validTo: String(s.valid_to),
+      }));
 
   return (
     <div>
       <PageHeader title="New order" subtitle="Book an order for a shop" />
       <NewOrderForm
         submit={createOrder}
-         initialShopId={(shops ?? []).some((s) => s.id === sp.shop) ? sp.shop : ''}
+        initialShopId={(shops ?? []).some((s) => s.id === sp.shop) ? sp.shop : ''}
+        schemes={schemes}
+        schemesFailed={schemesFailed}
         shops={(shops ?? []).map((s) => ({
           id: s.id,
           name: s.name,
@@ -69,6 +107,7 @@ export default async function NewOrderPage({
           name: p.name,
           pcsPerCarton: p.pcs_per_carton,
           price: Number(p.price_per_pcs),
+          companyId: p.company_id ?? null,
         }))}
       />
     </div>
