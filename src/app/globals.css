@@ -161,8 +161,9 @@ body::before {
   @page {
     size: A4;
     margin: 12mm;
-  }
-
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+       }
   aside,
   header,
   nav,
@@ -204,4 +205,43 @@ body::before {
       color: #60a5fa;
       text-decoration: underline;
     }
+        @page {
+          size: A4;
+          margin: 12mm;
+        }
+    
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+    
+          #print-area,
+          #print-area * {
+            visibility: visible;
+          }
+    
+          #print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+    
+          body {
+            background: #fff !important;
+          }
+    
+          thead {
+            display: table-header-group;
+          }
+        }
+                    .print-brand {
+                      display: block !important;
+                      visibility: visible !important;
+                      break-inside: avoid;
+                    }
+          
+                    .print-brand * {
+                      visibility: visible !important;
+                    }
 }

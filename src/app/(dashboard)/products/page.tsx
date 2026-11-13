@@ -17,6 +17,9 @@ import {
   TrendingUp,
   Wallet,
   Building2,
+  Printer,
+  ArchiveRestore,
+
 } from 'lucide-react';
 import { requireProfile, canManage } from '@/lib/auth';
 import { ctn, dateLabel, rs, todayPK } from '@/lib/format';
@@ -26,6 +29,7 @@ import EmptyState from '@/components/EmptyState';
 import ProductForm from '@/components/ProductForm';
 import ExpiryChip from '@/components/ExpiryChip';
 import RestockSheet from '@/components/RestockSheet';
+import LiveSearch from '@/components/LiveSearch';
 
 type Stat = {
   product_id: string;
@@ -204,19 +208,30 @@ export default async function ProductsPage({
     redirect('/products?ok=' + encodeURIComponent('Product updated'));
   }
 
-  async function removeProduct(fd: FormData) {
+    async function removeProduct(fd: FormData) {
     'use server';
     const { supabase, profile } = await requireProfile();
     if (!canManage(profile.role)) fail('Not allowed');
 
+    const id = String(fd.get('id'));
+
+    const { data: st } = await supabase
+      .from('product_stats')
+      .select('stock_pcs')
+      .eq('product_id', id)
+      .maybeSingle();
+    if (Number(st?.stock_pcs ?? 0) > 0) {
+      fail('This product still has stock on hand, so it cannot be deleted.');
+    }
+
     const { error } = await supabase
       .from('products')
       .update({ deleted_at: new Date().toISOString() })
-      .eq('id', String(fd.get('id')));
-    if (error) fail(error.message);
+      .eq('id', id);
+    if (error) fail(error.message.replace(/^[A-Z_]+:\s*/, ''));
 
     revalidatePath('/products');
-    redirect('/products?ok=' + encodeURIComponent('Product deleted'));
+    redirect('/products?ok=' + encodeURIComponent('Product deleted. You can restore it from Deleted products.'));
   }
 
   async function restock(payload: string): Promise<{ ok?: boolean; error?: string }> {
@@ -400,13 +415,14 @@ export default async function ProductsPage({
         suppliers={suppliers}
         compact={compact}
         highlight={r.status === 'low' || r.status === 'out'}
-        product={{
+                product={{
           id: r.id,
           name: r.name,
           pcs: r.pcs,
           costCtn: seeCost && r.lastCost != null ? Math.round(r.lastCost * r.pcs * 100) / 100 : null,
           suggestCtn: r.suggestCtn,
           companyId: r.companyId,
+          saleCtn: seeCost ? Math.round(r.unit * r.pcs * 100) / 100 : null,
         }}
       />
     ) : null;
@@ -416,11 +432,13 @@ export default async function ProductsPage({
       <AddSheet variant="edit" title={`Edit ${r.name}`}>
       <ProductForm action={updateProduct} product={formProduct(r)} suppliers={suppliers} />
       </AddSheet>
-      <form action={removeProduct}>
+            <form action={removeProduct}>
         <input type="hidden" name="id" value={r.id} />
         <button
+          disabled={r.stock > 0}
+          title={r.stock > 0 ? 'Has stock, cannot delete' : 'Delete product'}
           aria-label="Delete product"
-          className="grid size-9 place-items-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+          className="grid size-9 place-items-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
         >
           <Trash2 size={17} />
         </button>
@@ -559,18 +577,28 @@ export default async function ProductsPage({
           )}
         </div>
       )}
+      {manage && (
+        <Link href="/products/deleted" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-700">
+          <ArchiveRestore size={15} />
+          Deleted products
+        </Link>
+      )}
+           {manage && (
+        <Link href="/stock/expired" className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-800">
+          <PackageX size={15} />
+          Expired stock
+        </Link>
+      )}
 
-      <form className="relative">
-        <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Search name, SKU, barcode or brand"
-          className="field pl-10"
-        />
-        {f && <input type="hidden" name="f" value={f} />}
-        {s && <input type="hidden" name="s" value={s} />}
-      </form>
+     <LiveSearch placeholder="Search name, SKU, barcode or brand" />
+
+      <Link
+  href="/products/print"
+  className="card flex items-center justify-center gap-2 p-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+>
+  <Printer size={17} />
+  Print / PDF
+</Link>
 
       {seeStock && (
         <div className="space-y-2">

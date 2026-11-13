@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, PackagePlus, X } from 'lucide-react';
+import { AlertTriangle, PackagePlus, Tag, X } from 'lucide-react';
 import { rs } from '@/lib/format';
 
 type Opt = { id: string; name: string };
@@ -14,6 +14,7 @@ type Product = {
   costCtn: number | null;
   suggestCtn: number;
   companyId: string | null;
+  saleCtn?: number | null;
 };
 
 const uid = () =>
@@ -85,6 +86,12 @@ export default function RestockSheet({
   const qty = (Number(cartons) || 0) * product.pcs + (Number(loose) || 0);
   const costPcs = product.pcs > 0 ? (Number(cost) || 0) / product.pcs : 0;
   const total = qty * costPcs;
+
+  // Sale price is display only. It is set on the product page and never changed here.
+  const saleCtn = product.saleCtn != null && product.saleCtn > 0 ? product.saleCtn : null;
+  const costCtnNum = Number(cost) || 0;
+  const profitCtn = saleCtn != null && cost !== '' ? saleCtn - costCtnNum : null;
+  const marginPct = profitCtn != null && saleCtn ? (profitCtn / saleCtn) * 100 : null;
 
   function onSubmit() {
     setError('');
@@ -199,7 +206,7 @@ export default function RestockSheet({
                   />
                 </div>
 
-                <div className="col-span-2">
+                <div>
                   <label className="label">Purchase cost per carton (Rs)</label>
                   <input
                     type="number"
@@ -212,6 +219,33 @@ export default function RestockSheet({
                     placeholder="0"
                   />
                 </div>
+                <div>
+                  <label className="label">Sale price per carton</label>
+                  <div
+                    className="field flex items-center gap-2 bg-slate-50 font-semibold text-slate-700"
+                    aria-readonly="true"
+                    title="Set on the product page"
+                  >
+                    <Tag size={15} className="shrink-0 text-slate-400" />
+                    {saleCtn != null ? rs(saleCtn) : <span className="font-normal text-slate-400">Not set</span>}
+                  </div>
+                </div>
+
+                {profitCtn != null && (
+                  <div
+                    className={`col-span-2 flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold ${
+                      profitCtn < 0 ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
+                    }`}
+                  >
+                    <span>
+                      {profitCtn < 0 ? 'Loss per carton at this cost' : 'Profit per carton at this cost'}
+                    </span>
+                    <span>
+                      {rs(Math.abs(profitCtn))}
+                      {marginPct != null && ` (${marginPct.toFixed(1)}%)`}
+                    </span>
+                  </div>
+                )}
 
                 <div>
                   <label className="label">Batch no. (optional)</label>
