@@ -4,6 +4,7 @@ import { requireProfile } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
+import OrderAlerts from '@/components/OrderAlerts';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { profile } = await requireProfile();
@@ -52,7 +53,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {children}
         </main>
       </div>
-
+       
+             {['owner', 'manager'].includes(profile.role) && <OrderAlerts />}
+             
       <BottomNav role={profile.role} />
     </div>
   );
