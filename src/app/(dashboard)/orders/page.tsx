@@ -6,7 +6,9 @@ import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import StatusChip from '@/components/StatusChip';
 import ApproveAllButton from '@/components/ApproveAllButton';
+import TripSelect from '@/components/TripSelect';
 import { approveAllAction, approveOneAction } from './actions';
+import { createTripFromOrders } from './trip-actions';
 
 const TABS = [
   { key: 'booked', label: 'Pending' },
@@ -15,7 +17,7 @@ const TABS = [
   { key: 'all', label: 'All' },
 ];
 
-type Named = { name?: string; full_name?: string };
+type Named = { name?: string; full_name?: string; route_id?: string | null };
 
 // Start of today in Pakistan (UTC+5, no DST), as a UTC ISO string
 function pkDayStartIso() {
@@ -33,10 +35,14 @@ export default async function OrdersPage({
   const { status = 'booked', done, failed, err } = await searchParams;
   const { supabase, profile } = await requireProfile();
 
+  const canBook = ['owner', 'manager', 'salesman'].includes(profile.role);
+  const canApprove = ['owner', 'manager'].includes(profile.role);
+  const tripMode = canApprove && status === 'approved';
+
   let query = supabase
     .from('orders')
     .select(
-      'id, order_no, status, total, booked_at, shops(name), salesman:profiles!orders_salesman_id_fkey(full_name)'
+      'id, order_no, status, total, booked_at, shops(name, route_id), salesman:profiles!orders_salesman_id_fkey(full_name)'
     )
     .is('deleted_at', null)
     .order('booked_at', { ascending: false })
@@ -44,7 +50,7 @@ export default async function OrdersPage({
 
   if (status !== 'all') query = query.eq('status', status);
 
-  const [{ data: orders }, { data: pendingAll }, { data: todayAll }] = await Promise.all([
+  const [{ data: orders }, { data: pendingAll }, { data: todayAll }, dmRes, whRes] = await Promise.all([
     query,
     supabase.from('orders').select('total').eq('status', 'booked').is('deleted_at', null),
     supabase
@@ -52,6 +58,17 @@ export default async function OrdersPage({
       .select('total, status')
       .is('deleted_at', null)
       .gte('booked_at', pkDayStartIso()),
+    tripMode
+      ? supabase
+          .from('profiles')
+          .select('id, full_name, vehicle_no')
+          .eq('role', 'delivery')
+          .eq('is_active', true)
+          .order('full_name')
+      : Promise.resolve({ data: [] as { id: string; full_name: string; vehicle_no: string | null }[] }),
+    tripMode
+      ? supabase.from('warehouses').select('id, name').is('deleted_at', null).order('name')
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
   ]);
 
   const sum = (rows: { total: number | string | null }[] | null | undefined) =>
@@ -68,11 +85,22 @@ export default async function OrdersPage({
   const approvedCount = approvedRows.length;
   const approvedAmount = sum(approvedRows);
 
-  const canBook = ['owner', 'manager', 'salesman'].includes(profile.role);
-  const canApprove = ['owner', 'manager'].includes(profile.role);
-
   const doneN = Number(done ?? 0);
   const failedN = Number(failed ?? 0);
+
+  const tripOrders = (orders ?? []).map((o) => {
+    const shop = one(o.shops as unknown as Named | Named[] | null);
+    const man = one(o.salesman as unknown as Named | Named[] | null);
+    return {
+      id: o.id as string,
+      orderNo: o.order_no as number,
+      shop: shop?.name ?? 'Unknown shop',
+      by: man?.full_name ?? '-',
+      when: when(o.booked_at),
+      total: Number(o.total),
+      routeId: shop?.route_id ?? null,
+    };
+  });
 
   return (
     <div>
@@ -181,6 +209,17 @@ export default async function OrdersPage({
           icon={ClipboardList}
           title="No orders here"
           hint="Orders booked by salesmen will appear in this list."
+        />
+      ) : tripMode ? (
+        <TripSelect
+          orders={tripOrders}
+          deliveryMen={(dmRes.data ?? []).map((d) => ({
+            id: d.id,
+            name: d.full_name,
+            vehicle: d.vehicle_no ?? '',
+          }))}
+          warehouses={whRes.data ?? []}
+          submit={createTripFromOrders}
         />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">

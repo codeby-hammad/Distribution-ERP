@@ -24,7 +24,7 @@ export async function approveOneAction(formData: FormData) {
     redirect(`/orders?status=${back}&err=${encodeURIComponent('You cannot approve orders')}`);
   }
 
-const { error } = await supabase.rpc('approve_order', { p_order_id: id, p_override: false });
+  const { error } = await supabase.rpc('approve_order', { p_order_id: id, p_override: false });
   revalidatePath('/orders');
 
   if (error) {
@@ -55,7 +55,8 @@ export async function approveAllAction(formData: FormData) {
   let firstErr = '';
 
   for (const o of pending ?? []) {
-const { error } = await supabase.rpc('approve_order', { p_order_id: o.id, p_override: false });    if (error) {
+    const { error } = await supabase.rpc('approve_order', { p_order_id: o.id, p_override: false });
+    if (error) {
       failed++;
       if (!firstErr) firstErr = clean(error.message);
     } else {
@@ -64,7 +65,11 @@ const { error } = await supabase.rpc('approve_order', { p_order_id: o.id, p_over
   }
 
   revalidatePath('/orders');
-  const q = new URLSearchParams({ status: back, done: String(done), failed: String(failed) });
+
+  // All approved: go to the Approved tab so a trip can be created right away.
+  // Some skipped: stay on Pending so the skipped orders are visible.
+  const target = done > 0 && failed === 0 ? 'approved' : back;
+  const q = new URLSearchParams({ status: target, done: String(done), failed: String(failed) });
   if (firstErr) q.set('err', firstErr);
   redirect(`/orders?${q.toString()}`);
 }

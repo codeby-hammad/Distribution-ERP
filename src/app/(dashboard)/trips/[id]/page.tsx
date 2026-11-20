@@ -29,7 +29,16 @@ export default async function TripDetailPage({
     if (error) redirect(`/trips/${id}?error=${encodeURIComponent(error.message)}`);
     redirect(`/trips/${id}`);
   }
-
+  async function loadAndOpenSheet() {
+    'use server';
+    const { supabase } = await requireProfile();
+    const { error } = await supabase.rpc('load_trip', { p_trip_id: id });
+    revalidatePath('/trips');
+    revalidatePath(`/trips/${id}`);
+    revalidatePath('/stock');
+    if (error) redirect(`/trips/${id}?error=${encodeURIComponent(error.message)}`);
+    redirect(`/trips/${id}/loadsheet`);
+  }
   async function cancel() {
     'use server';
     const { supabase } = await requireProfile();
@@ -183,13 +192,21 @@ export default async function TripDetailPage({
             </div>
           )}
 
-          {canLoad && (
-            <form action={load}>
-              <button className="btn-primary w-full">
-                <Truck size={18} />
-                Load trip and generate invoices
-              </button>
-            </form>
+                    {canLoad && (
+            <div className="space-y-2">
+              <form action={loadAndOpenSheet}>
+                <button className="btn-primary w-full">
+                  <Printer size={18} />
+                  Load and open load sheet
+                </button>
+              </form>
+              <form action={load}>
+                <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 ring-1 ring-indigo-100 transition hover:bg-indigo-100">
+                  <Truck size={18} />
+                  Load only (stay on this page)
+                </button>
+              </form>
+            </div>
           )}
 
           {canManage(profile.role) && (
