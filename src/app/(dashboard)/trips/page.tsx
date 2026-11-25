@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CheckCheck, FileText, Plus, Truck } from 'lucide-react';
+import { CheckCheck, FileText, Plus, Truck, Banknote } from 'lucide-react';
 import { requireProfile, canManage } from '@/lib/auth';
 import { dateLabel, one, rs } from '@/lib/format';
 import PageHeader from '@/components/PageHeader';
@@ -86,13 +86,31 @@ export default async function TripsPage({
             <Link href="/trips/new" className="btn-primary shrink-0">
               <Plus size={18} />
               New
+              
             </Link>
+            
           )
         }
       />
+      
+<Link
+  href="/trips/cash"
+  className="card mb-4 flex items-center gap-3 p-3 transition hover:bg-indigo-50 active:scale-[0.99]"
+>
+  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
+    <Banknote size={20} />
+  </div>
+  <div className="min-w-0 flex-1">
+    <p className="text-sm font-semibold text-slate-900">Delivery cash</p>
+    <p className="truncate text-xs text-slate-500">By date and delivery man</p>
+  </div>
+  <span className="text-sm font-semibold text-indigo-600">Open &rarr;</span>
+</Link>
+
 
       <div className="mb-4 grid grid-cols-3 gap-2 md:gap-3">
         {manage ? (
+          
           <Link
             href="/trips/new"
             className={`card p-3 transition active:scale-[0.99] md:p-4 ${approvedCount > 0 ? 'ring-1 ring-amber-300' : ''}`}

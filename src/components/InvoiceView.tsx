@@ -131,17 +131,31 @@ export default function InvoiceView({
             <span>- {rs(inv.collected)}</span>
           </div>
         )}
-                <div className="flex justify-between pt-2 text-slate-600">
-          <span>Previous balance (old credit)</span>
-          <span>{rs(inv.previous)}</span>
-        </div>
-        <div className="flex justify-between rounded-lg bg-slate-900 px-3 py-2 text-base font-bold text-white print:bg-slate-200 print:text-slate-900">
-          <span>Total payable</span>
-          <span>{rs(inv.net)}</span>
-        </div>
-        <p className="text-right text-[11px] text-slate-400">
-          Old balance + this invoice{inv.returned > 0 ? ' - returns' : ''}{inv.collected > 0 ? ' - paid' : ''}
-        </p>
+                        {(() => {
+          const adv = inv.previous < -0.5; // shop had paid more than it owed
+          const credit = inv.net < -0.5; // after this invoice the shop is still in credit
+          return (
+            <>
+              <div className="flex justify-between pt-2 text-slate-600">
+                <span>{adv ? 'Advance paid earlier (shop credit)' : 'Previous balance (old dues)'}</span>
+                <span>{adv ? `- ${rs(Math.abs(inv.previous))}` : rs(inv.previous)}</span>
+              </div>
+              <div className="flex justify-between rounded-lg bg-slate-900 px-3 py-2 text-base font-bold text-white print:bg-slate-200 print:text-slate-900">
+                <span>{credit ? 'Credit balance (advance with us)' : 'Total payable'}</span>
+                <span>{credit ? `- ${rs(Math.abs(inv.net))}` : rs(Math.max(inv.net, 0))}</span>
+              </div>
+              <p className="text-right text-[11px] text-slate-400">
+                Old balance + this invoice{inv.returned > 0 ? ' - returns' : ''}{inv.collected > 0 ? ' - paid' : ''}
+              </p>
+              {adv && (
+                <p className="no-print rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-amber-100">
+                  This shop has a credit of {rs(Math.abs(inv.previous))} in the ledger. If the shop did not pay in
+                  advance, open its ledger and check for a double payment or return before printing.
+                </p>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       <div className="mt-10 grid grid-cols-2 gap-8 text-xs text-slate-500">
