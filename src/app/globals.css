@@ -171,6 +171,21 @@ body::before {
     display: none !important;
   }
 
+    /* invoice: solid black, slightly heavier, so it stays readable on any printer */
+    .invoice-sheet,
+    .invoice-sheet * {
+      color: #000 !important;
+    }
+  
+    .invoice-sheet {
+      font-weight: 500;
+      -webkit-font-smoothing: auto;
+    }
+  
+    .invoice-sheet .print-muted {
+      color: #222 !important;
+    }
+
   body {
     background: #fff !important;
   }
@@ -205,36 +220,72 @@ body::before {
       color: #60a5fa;
       text-decoration: underline;
     }
-        @page {
-          size: A4;
-          margin: 12mm;
-        }
-    
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-    
-          #print-area,
-          #print-area * {
-            visibility: visible;
-          }
-    
-          #print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-    
-          body {
-            background: #fff !important;
-          }
-    
-          thead {
-            display: table-header-group;
-          }
-        }
+             @page {
+               size: A4;
+               margin: 12mm;
+             }
+      
+             @media print {
+
+                /* floating bars, bottom nav, sticky headers, sidebar */
+                  .fixed,
+                  .sticky,
+                  aside,
+                  nav {
+                    display: none !important;
+                  }
+               .no-print {
+                 display: none !important;
+               }
+      
+               body {
+                 background: #fff !important;
+               }
+      
+               * {
+                 -webkit-print-color-adjust: exact;
+                 print-color-adjust: exact;
+               }
+      
+               thead {
+                 display: table-header-group;
+               }
+      
+               tr {
+                 break-inside: avoid;
+               }
+      
+               /* one invoice per page */
+               .invoice-sheet {
+                 break-after: page;
+               }
+      
+               .invoice-sheet:last-child {
+                 break-after: auto;
+               }
+      
+               /* only for pages that have a #print-area (the product price list) */
+               body:has(#print-area) * {
+                 visibility: hidden;
+               }
+      
+               #print-area,
+               #print-area * {
+                 visibility: visible;
+               }
+      
+               #print-area {
+                 position: absolute;
+                 left: 0;
+                 top: 0;
+                 width: 100%;
+               }
+      
+               .print-brand,
+               .print-brand * {
+                 visibility: visible !important;
+               }
+             }
                     .print-brand {
                       display: block !important;
                       visibility: visible !important;

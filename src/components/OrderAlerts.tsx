@@ -184,8 +184,7 @@ export default function OrderAlerts() {
       <button
         onClick={toggle}
         title={enabled ? 'New order alerts are on. Click to turn off' : 'Turn on new order alerts'}
-        className="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200 md:bottom-4"
-      >
+        className="no-print fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 shadow-lg ring-1 ring-slate-200 md:bottom-4"      >
         {enabled ? <Bell size={16} className="text-indigo-600" /> : <BellOff size={16} className="text-slate-400" />}
         {enabled ? 'Alerts on' : 'Alerts off'}
         {enabled && (
@@ -193,7 +192,7 @@ export default function OrderAlerts() {
         )}
       </button>
 
-      <div className="fixed right-3 top-3 z-[60] flex w-[calc(100%-1.5rem)] max-w-sm flex-col gap-2">
+      <div className="no-print fixed right-3 top-3 z-[60] flex w-[calc(100%-1.5rem)] max-w-sm flex-col gap-2">
         {toasts.map((t) => (
           <div key={t.id} className="flex items-start gap-3 rounded-2xl bg-white p-3.5 shadow-2xl ring-1 ring-indigo-200">
             <div className="hero grid size-10 shrink-0 place-items-center rounded-xl text-white">
